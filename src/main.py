@@ -1,10 +1,23 @@
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
+from camera import Camera
 
-def init():
-    glClearColor(0.1, 0.1, 0.1, 1.0)
-    glEnable(GL_DEPTH_TEST)
+## -------- CAMERA CONTROLS -------- ##
+
+camera = Camera()
+
+def mouse(button, state, x, y):
+    if state == GLUT_DOWN:
+        camera.start_mouse(button, x, y)
+
+    if button == 3:
+        camera.dolly(-1)
+    elif button == 4:
+        camera.dolly(1)
+
+def motion(x, y):
+    camera.move_mouse(x, y)
 
 
 ## -------- GRID AND AXES -------- ##
@@ -53,11 +66,15 @@ def display():
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
 
-    gluLookAt(3, 3, 3, 0, 0, 0, 0, 1, 0)
+    # Camera update
+    camera.update()
+    gluLookAt(camera.camera_position_x, camera.camera_position_y, camera.camera_position_z,
+              camera.focal_point_x, camera.focal_point_y, camera.focal_point_z,
+              0, 1, 0)
 
+    # Drawing Grid and Axes
     draw_axes()
-    draw_grid()   # plano cartesiano com malha
-    # draw_cube()   # seu cubo estático
+    draw_grid()  
 
     glutSwapBuffers()
 
@@ -65,7 +82,11 @@ def reshape(w, h):
     glViewport(0, 0, w, h)
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
-    gluPerspective(60, w / float(h or 1), 0.1, 100)
+    gluPerspective(60.0, w / float(h), 0.1, 100.0)
+
+def init():
+    glClearColor(0.1, 0.1, 0.1, 1.0)
+    glEnable(GL_DEPTH_TEST)
 
 def main():
     glutInit()
@@ -73,7 +94,7 @@ def main():
 
     screen_width = glutGet(GLUT_SCREEN_WIDTH)
     screen_height = glutGet(GLUT_SCREEN_HEIGHT)
-
+    
     window_width = screen_width - 100  
     window_height = screen_height - 100
     
@@ -84,7 +105,11 @@ def main():
     init()
 
     glutDisplayFunc(display)
+    glutIdleFunc(display)
+    glutMouseFunc(mouse)
+    glutMotionFunc(motion)
     glutReshapeFunc(reshape)
+
     glutMainLoop()
 
 if __name__ == "__main__":
