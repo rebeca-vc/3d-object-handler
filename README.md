@@ -1,7 +1,13 @@
 # 3d Object Handler
 
-Deverá ser desenvolvido um programa que simule um ambiente que permita manipular (por Transformações Geométricas 3D e projeções (Perspectiva e Ortográfica), objetos tridimensionais ou previamente definidos, ou indicados como polígonos 2D e com a terceira dimensão por extrusão (utilizando o Trabalho 1).
+Adicione, manipule e visualize objetos 3d em um cenário com controle de iluminação.
 
-Os polígonos deverão ser então renderizados utilizando os três modelos de iluminação (Flat, Gouraud e Phong) para objetos tridimensionais utilizando o algoritmo Scan-line. O sistema deve ser interativo, permitindo que o usuário altere o modo de visualização dos objetos como quiser. Podem ser utilizados objetos previamente definidos como opção de escolha do usuário, devendo haver pelo menos 4 tipos de objetos, tais como cubo, pirâmide, cilindro…
+## Alunos
+- Rebeca Vieira Carvalho | NUSP 12543530 
+- Murilo Cury Pontes | NUSP 13830417
 
-Você poderá deixar como parâmetro de entrada a posição da fonte de luz e do observador. Pode ser utilizado OpenGL para a implementação deste trabalho.
+## Descrição
+
+Este projeto permite que você manipule uma cena adicionando e organizando objetos, bem como simulando modelos de iluminação e tonalização com controle de câmera e fonte de luz. É possível adicionar objetos provenientes de poligonos arbitrários com terceira dimensão por extrusão ou adicionar modelos previamente estabelecidos, como esferas, cubos, pirâmides e o famoso [teapot](https://graphics.stanford.edu/courses/cs148-10-summer/as3/code/as3/teapot.obj). Além disso, será possível realizar transformações geométricas em qualquer objeto, o qual poderá ser transladado, rotacionado e escalado. Com o objeto em cena, você é capaz de escolher o modelo de iluminação entre o Flat, Gouraud ou Phong. Cada componente da luz (Ambiente, Difusa e Especular) também pode ser gerenciada através do menu de opções. Para um controle maior da cena, é possível alterar o modo de projeção entre paralelo/ortográfico ou perspectiva.
+
+
