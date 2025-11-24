@@ -1,2 +1,4 @@
 PyOpenGL
 PyOpenGl_accelerate
+imgui[full]
+numpy
