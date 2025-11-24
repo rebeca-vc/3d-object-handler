@@ -100,7 +100,9 @@ def display():
     # NOVO: Chamada para a função de desenho do painel de controle
     draw_control_panel(ui_state) 
     
-    # --- Desenho da Cena OpenGL ---
+    w = glutGet(GLUT_WINDOW_WIDTH)
+    h = glutGet(GLUT_WINDOW_HEIGHT)
+    projection_setup(w, h, ui_state)
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
@@ -137,6 +139,30 @@ def reshape(w, h):
 def init():
     glClearColor(0.1, 0.1, 0.1, 1.0)
     glEnable(GL_DEPTH_TEST)
+
+def projection_setup(width, height, ui_state):
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+
+    aspect_ratio = width / height if height > 0 else 1.0
+    projection_mode = ui_state.projection_options[ui_state.projection_selected_index]
+
+    if projection_mode == 'Perspectiva':
+        gluPerspective(60.0, aspect_ratio, 0.1, 100.0) 
+
+    elif projection_mode == 'Paralelo':
+        view_radius = 5.0 
+        
+        if aspect_ratio >= 1:
+            glOrtho(-view_radius * aspect_ratio, view_radius * aspect_ratio, 
+                    -view_radius, view_radius, 
+                    0.1, 100.0)
+        else:
+            glOrtho(-view_radius, view_radius, 
+                    -view_radius / aspect_ratio, view_radius / aspect_ratio, 
+                    0.1, 100.0)
+            
+    glMatrixMode(GL_MODELVIEW)
 
 def main():
     global renderer
