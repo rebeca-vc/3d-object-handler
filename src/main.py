@@ -2,14 +2,21 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 import imgui
-from imgui.integrations.opengl import FixedPipelineRenderer as GlutRenderer
+from imgui.integrations.opengl import ProgrammablePipelineRenderer # troquei pra resolver a hud
 from camera import Camera
 from control_panel import ControlPanelState, draw_control_panel 
+from object.objects import Object
 
 # Variáveis globais
 renderer = None
 camera = Camera()
 ui_state = ControlPanelState() 
+objects: list[Object] = []
+
+def add_object_to_scene(obj: Object):
+    """Adiciona um objeto à lista global de objetos da cena."""
+    objects.append(obj)
+    print(f"Objeto adicionado à cena. Total de objetos: {len(objects)}")
 
 
 ## -------- MOUSE CONTROLS -------- ##
@@ -54,6 +61,9 @@ def motion(x, y):
 ## -------- GRID AND AXES -------- ##
 
 def draw_axes():
+    # Desabilita iluminação para que as cores apareçam direto
+    glDisable(GL_LIGHTING)
+    
     glBegin(GL_LINES)
 
     # Eixo X em vermelho
@@ -72,9 +82,15 @@ def draw_axes():
     glVertex3f(0, 0,  10)
 
     glEnd()
+    
+    # Reabilita iluminação para os objetos
+    glEnable(GL_LIGHTING)
 
 
 def draw_grid(size=10, step=1):
+    # Desabilita iluminação para que a cor da grid apareça
+    glDisable(GL_LIGHTING)
+    
     glColor3f(0.4, 0.4, 0.4)  # cor da malha
 
     glBegin(GL_LINES)
@@ -87,6 +103,9 @@ def draw_grid(size=10, step=1):
         glVertex3f(i, 0, -size)
         glVertex3f(i, 0,  size)
     glEnd()
+    
+    # Reabilita iluminação
+    glEnable(GL_LIGHTING)
 
 
 ## -------- GLUT BASIC -------- ##
@@ -98,7 +117,7 @@ def display():
     imgui.new_frame()
 
     # NOVO: Chamada para a função de desenho do painel de controle
-    draw_control_panel(ui_state) 
+    draw_control_panel(ui_state, add_object_to_scene) 
     
     w = glutGet(GLUT_WINDOW_WIDTH)
     h = glutGet(GLUT_WINDOW_HEIGHT)
@@ -117,7 +136,11 @@ def display():
 
     # Drawing Grid and Axes
     draw_axes()
-    draw_grid()  
+    draw_grid()
+
+    # Desenha cada objeto
+    for obj in objects:
+        obj.draw()
 
     # --- Renderização do ImGui ---
     imgui.render()
@@ -163,6 +186,10 @@ def projection_setup(width, height, ui_state):
                     0.1, 100.0)
             
     glMatrixMode(GL_MODELVIEW)
+    # Teste de iluminacao
+    glEnable(GL_LIGHTING)
+    glEnable(GL_LIGHT0)
+    glEnable(GL_NORMALIZE)  # se escalas variadas forem usadas
 
 def main():
     global renderer
@@ -182,7 +209,7 @@ def main():
 
     # Inicialização do ImGui
     imgui.create_context()
-    renderer = GlutRenderer() 
+    renderer = ProgrammablePipelineRenderer() 
 
     init()
     
