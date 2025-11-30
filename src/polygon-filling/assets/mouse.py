@@ -1,57 +1,43 @@
 from OpenGL.GLUT import *
 from .polygon import Polygon
-from .button import get_clicked_button
 
-def mouse(button, state, x, y, polygons, buttons, chosen_color_ref, current_line_thickness_ref):
-    global chosen_color
+def handle_modeling_mouse(button, state, x, y, current_polygon, completion_callback=None):
+    """
+    Processa eventos de mouse durante modelagem de polígonos para extrusão 3D.
+    
+    Args:
+        button: Botão do mouse pressionado
+        state: Estado do botão (GLUT_DOWN/GLUT_UP)
+        x, y: Coordenadas do mouse
+        current_polygon: Polígono atual sendo modelado
+        completion_callback: Função chamada quando polígono é finalizado
+    
+    Returns:
+        bool: True se evento foi processado, False caso contrário
+    """
     if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN:
         height = glutGet(GLUT_WINDOW_HEIGHT)
-        clicked_button = get_clicked_button(x,height - y, buttons)
-
-        # verifica se clicou em um botao
-        if clicked_button != None:
-            if clicked_button.text == "CLEAR":
-                    # limpar tela
-                    for poly in polygons:
-                        poly.clear()
-            elif clicked_button.text == "+":
-                # aumentar espessura
-                current_line_thickness_ref[0] = min(10.0, current_line_thickness_ref[0] + 0.5)
-            elif clicked_button.text == "-":
-                # diminuir espessura
-                current_line_thickness_ref[0] = max(0.5, current_line_thickness_ref[0] - 0.5)
-                    
-            elif clicked_button.shape == 'circle':
-                # Troca cor polígono
-                chosen_color_ref[0] = clicked_button.color
-        else:
-            # Cria o polígono
-            point = [x, height - y]
-
-            if not polygons:
-                polygons.append(Polygon(chosen_color_ref[0]))
-            # Adiciona o ponto no último polígono criado
-            polygons[-1].add_vertex(*point)
-
-        glutPostRedisplay()
-
+        point = [x, height - y]
+        
+        # Adiciona ponto ao polígono atual
+        if current_polygon:
+            current_polygon.add_vertex(*point)
+            print(f"Ponto {len(current_polygon.vertices)}: {point}")
+            glutPostRedisplay()
+        return True
+    
     elif button == GLUT_RIGHT_BUTTON and state == GLUT_DOWN:
-
-        # Descobre qual polígono o clique está dentro
-        height = glutGet(GLUT_WINDOW_HEIGHT)
-        click_point = [x, height - y]
-
-        first_fill = False
-        for poly in reversed(polygons):
-            if poly.check_inside_polygon(*click_point):
-                if not poly.filled:
-                    first_fill = True
-                poly.fill(chosen_color_ref[0])
-                poly.filled = True
-                break
-        
-        # Cria novo polígono
-        if first_fill:
-            polygons.append(Polygon(chosen_color_ref[0]))
+        # Finalizar polígono
+        if current_polygon and len(current_polygon.vertices) >= 3:
+            print(f"Polígono finalizado com {len(current_polygon.vertices)} vértices")
+            
+            # Chamar callback se fornecido
+            if completion_callback:
+                completion_callback(current_polygon)
+        else:
+            print("Erro: polígono precisa de pelo menos 3 pontos")
         
         glutPostRedisplay()
+        return True
+    
+    return False

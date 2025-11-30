@@ -6,22 +6,33 @@ from imgui.integrations.opengl import ProgrammablePipelineRenderer # troquei pra
 from camera import Camera
 from control_panel import ControlPanelState, draw_control_panel 
 from object.objects import Object
+from polygon_modeler import PolygonModeler
 
 # Variáveis globais
 renderer = None
 camera = Camera()
 ui_state = ControlPanelState() 
 objects: list[Object] = []
+polygon_modeler = PolygonModeler()
 
 def add_object_to_scene(obj: Object):
     """Adiciona um objeto à lista global de objetos da cena."""
     objects.append(obj)
     print(f"Objeto adicionado à cena. Total de objetos: {len(objects)}")
 
+def start_polygon_modeling(depth, completion_callback):
+    """Inicia modo de modelagem poligonal."""
+    polygon_modeler.start_modeling(depth, completion_callback)
+
 
 ## -------- MOUSE CONTROLS -------- ##
 
 def mouse(button, state, x, y):
+    # Primeiro verificar se está em modo de modelagem
+    if polygon_modeler.handle_mouse(button, state, x, y):
+        return  # Evento processado pela modelagem
+    
+    # Processamento normal do mouse para modo 3D
     io = imgui.get_io()
     
     # 1. ATUALIZAÇÃO IMGUI
@@ -44,6 +55,10 @@ def mouse(button, state, x, y):
 
 
 def motion(x, y):
+    # Se está em modelagem, não processar movimento da câmera
+    if polygon_modeler.is_modeling_active():
+        return
+    
     io = imgui.get_io()
     
     # 1. ATUALIZAÇÃO IMGUI 
@@ -116,31 +131,38 @@ def display():
     # Início do frame do ImGui
     imgui.new_frame()
 
-    # NOVO: Chamada para a função de desenho do painel de controle
-    draw_control_panel(ui_state, add_object_to_scene) 
+    # Chamada para a função de desenho do painel de controle com modelagem
+    draw_control_panel(ui_state, add_object_to_scene, start_polygon_modeling)
     
-    w = glutGet(GLUT_WINDOW_WIDTH)
-    h = glutGet(GLUT_WINDOW_HEIGHT)
-    projection_setup(w, h, ui_state)
+    # Verificar se está em modo de modelagem
+    if polygon_modeler.is_modeling_active():
+        # Renderização 2D para modelagem
+        glClear(GL_COLOR_BUFFER_BIT)
+        polygon_modeler.render_modeling_interface()
+    else:
+        # Renderização 3D normal
+        w = glutGet(GLUT_WINDOW_WIDTH)
+        h = glutGet(GLUT_WINDOW_HEIGHT)
+        projection_setup(w, h, ui_state)
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-    glMatrixMode(GL_MODELVIEW)
-    glLoadIdentity()
+        glMatrixMode(GL_MODELVIEW)
+        glLoadIdentity()
 
-    # Camera update
-    camera.update()
-    gluLookAt(camera.camera_position_x, camera.camera_position_y, camera.camera_position_z,
-              camera.focal_point_x, camera.focal_point_y, camera.focal_point_z,
-              0, 1, 0)
+        # Camera update
+        camera.update()
+        gluLookAt(camera.camera_position_x, camera.camera_position_y, camera.camera_position_z,
+                  camera.focal_point_x, camera.focal_point_y, camera.focal_point_z,
+                  0, 1, 0)
 
-    # Drawing Grid and Axes
-    draw_axes()
-    draw_grid()
+        # Drawing Grid and Axes
+        draw_axes()
+        draw_grid()
 
-    # Desenha cada objeto
-    for obj in objects:
-        obj.draw()
+        # Desenha cada objeto
+        for obj in objects:
+            obj.draw()
 
     # --- Renderização do ImGui ---
     imgui.render()

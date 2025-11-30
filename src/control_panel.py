@@ -39,8 +39,9 @@ class ControlPanelState:
     Desenha a janela e todos os widgets do Painel de Controle usando ImGui.
     Recebe um objeto ControlPanelState para ler/modificar o estado.
     add_object_callback: função que será chamada para adicionar um objeto à lista.
+    start_modeling_callback: função que será chamada para iniciar modelagem poligonal.
 """
-def draw_control_panel(state: ControlPanelState, add_object_callback=None):
+def draw_control_panel(state: ControlPanelState, add_object_callback=None, start_modeling_callback=None):
     # Flags para travar a janela
     window_flags = imgui.WINDOW_NO_MOVE | imgui.WINDOW_NO_RESIZE
     imgui.set_next_window_size(400, 500)
@@ -128,7 +129,12 @@ def draw_control_panel(state: ControlPanelState, add_object_callback=None):
         
         imgui.text("")
         if imgui.button("Iniciar Modelagem"):
-            print(f"Abrindo modelagem com {state.polygon_depth_options[state.polygon_depth_index]} de profundidade!")
+            if start_modeling_callback:
+                depth = float(state.polygon_depth_options[state.polygon_depth_index])
+                start_modeling_callback(depth, add_object_callback)
+                print(f"Iniciando modelagem poligonal com profundidade {depth}")
+            else:
+                print("Erro: callback de modelagem não definido")
         imgui.text("")
 
         imgui.separator()
