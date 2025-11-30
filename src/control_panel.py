@@ -1,4 +1,5 @@
 import imgui
+from object.objects import Object
 
 """
     Gerencia o estado de todas as variáveis controladas pelo Painel ImGui.
@@ -7,7 +8,7 @@ class ControlPanelState:
  
     def __init__(self):
         # Seleção de Objeto 3D
-        self.object_options = ["Cubo", "Esfera", "Teapot", "Pirâmide"]
+        self.object_options = ["Cubo", "Esfera", "Teapot", "Cone", "Torus"]
         self.object_selected_index = 0
 
         # Cores 
@@ -37,8 +38,10 @@ class ControlPanelState:
 """
     Desenha a janela e todos os widgets do Painel de Controle usando ImGui.
     Recebe um objeto ControlPanelState para ler/modificar o estado.
+    add_object_callback: função que será chamada para adicionar um objeto à lista.
+    start_modeling_callback: função que será chamada para iniciar modelagem poligonal.
 """
-def draw_control_panel(state: ControlPanelState):
+def draw_control_panel(state: ControlPanelState, add_object_callback=None, start_modeling_callback=None):
     # Flags para travar a janela
     window_flags = imgui.WINDOW_NO_MOVE | imgui.WINDOW_NO_RESIZE
     imgui.set_next_window_size(400, 500)
@@ -72,10 +75,41 @@ def draw_control_panel(state: ControlPanelState):
         imgui.text("")
 
         if imgui.button("Adicionar Objeto"):
-            print(f"Adicionando objeto!")
-            print(f"Objeto: {state.object_options[state.object_selected_index]}")
-            print(f"Cor: {state.object_color}")
-            print(f"Material: {state.object_material_options[state.object_material_selected_index]}")
+            if add_object_callback:
+                # Mapear nome para formato esperado pela classe Object
+                shape_map = {
+                    "Cubo": "cube",
+                    "Esfera": "sphere", 
+                    "Teapot": "teapot",
+                    "Cone": "cone",
+                    "Torus": "torus"
+                }
+                
+                # Mapear material para formato esperado
+                material_map = {
+                    "Plástico": "white_plastic",
+                    "Borracha": "white_rubber",
+                    "Metal": "silver", 
+                    "Ouro": "gold"
+                }
+                
+                shape = shape_map.get(state.object_options[state.object_selected_index], "cube")
+                material = material_map.get(state.object_material_options[state.object_material_selected_index], "white_plastic")
+                
+                # Criar novo objeto
+                new_object = Object(shape=shape, material=material)
+                
+                # Aplicar cor personalizada
+                r, g, b = state.object_color
+                new_object.set_color(r, g, b)
+                
+                # Adicionar à lista através do callback
+                add_object_callback(new_object)
+                
+                print(f"Objeto {shape} adicionado com material {material} e cor {state.object_color}")
+            else:
+                print("Erro: callback de adição não definido")
+
 
         imgui.text("")
         # --- Seção de Objeto Arbitrário --- #
@@ -95,7 +129,12 @@ def draw_control_panel(state: ControlPanelState):
         
         imgui.text("")
         if imgui.button("Iniciar Modelagem"):
-            print(f"Abrindo modelagem com {state.polygon_depth_options[state.polygon_depth_index]} de profundidade!")
+            if start_modeling_callback:
+                depth = float(state.polygon_depth_options[state.polygon_depth_index])
+                start_modeling_callback(depth, add_object_callback)
+                print(f"Iniciando modelagem poligonal com profundidade {depth}")
+            else:
+                print("Erro: callback de modelagem não definido")
         imgui.text("")
 
         imgui.separator()

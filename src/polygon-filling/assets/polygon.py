@@ -1,28 +1,53 @@
 from OpenGL.GL import *
 import math
-from .filling import polygon_filling
 
 
 class Polygon():
 
     def __init__(self, color=(1.0, 1.0, 1.0)):
         self.vertices = []
-        self.filled_segments = []
         self.color = color
-        self.filled = False
     
     def add_vertex(self, x, y):
         self.vertices.append([x, y])
 
     def clear(self):
         self.vertices.clear()
-        self.filled_segments.clear()
-
-    def fill(self, color=(1.0, 1.0, 1.0)):
-        self.filled_segments = polygon_filling(self.vertices)
-        self.color = color
+    
+    def _are_collinear(self, p1, p2, p3):
+        """Verifica se três pontos são colineares usando produto vetorial"""
+        # Produto vetorial: (p2 - p1) x (p3 - p1)
+        # Se for 0 (ou muito próximo de 0), os pontos são colineares
+        cross_product = (p2[0] - p1[0]) * (p3[1] - p1[1]) - (p2[1] - p1[1]) * (p3[0] - p1[0])
+        return abs(cross_product) < 1e-10  # Tolerância para erros de ponto flutuante
+    
+    def _has_collinear_points(self):
+        """Verifica se o polígono tem pontos colineares consecutivos"""
+        if len(self.vertices) < 3:
+            return False
+        
+        for i in range(len(self.vertices)):
+            p1 = self.vertices[i]
+            p2 = self.vertices[(i + 1) % len(self.vertices)]
+            p3 = self.vertices[(i + 2) % len(self.vertices)]
+            
+            if self._are_collinear(p1, p2, p3):
+                return True
+        return False
+    
+    def is_valid_for_extrusion(self):
+        """Verifica se polígono é válido para extrusão"""
+        if len(self.vertices) < 3:
+            return False
+        
+        # Verifica se há pontos colineares
+        if self._has_collinear_points():
+            return False
+            
+        return True
 
     def draw_edges(self, current_line_thickness):
+        """Desenha bordas do polígono com espessura"""
         if len(self.vertices) < 2:
             return
         
@@ -55,36 +80,3 @@ class Polygon():
             glVertex2f(x2 - offset_x, y2 - offset_y)
             glVertex2f(x2 + offset_x, y2 + offset_y)
         glEnd()
-    
-    def draw_fill(self):
-        glColor3f(*self.color)
-        glBegin(GL_POINTS)
-        for y, x1, x2 in self.filled_segments:
-            for x in range(x1, x2 + 1):
-                glVertex2f(x, y)
-        glEnd()
-
-    
-    def check_inside_polygon(self, x, y):
-        if not self.vertices or len(self.vertices) < 3:
-            return False
-        
-        intersections = 0
-        n = len(self.vertices)
-        
-        for i in range(n):
-            x1, y1 = self.vertices[i]
-            x2, y2 = self.vertices[(i + 1) % n]
-            
-            if y1 == y2:
-                continue
-            # para estar no meio é um xor (sp 1 é maior)
-            if (y1 > y) != (y2 > y):
-                #  x em que a reta horizontal mouse intercepta a aresta
-                x_intersect = x1 + (y - y1) * (x2 - x1) / (y2 - y1)
-                
-                # valida se a interseção foi à direita
-                if x_intersect > x:
-                    intersections += 1
-        
-        return intersections % 2 == 1
