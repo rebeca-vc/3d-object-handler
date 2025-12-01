@@ -7,12 +7,14 @@ from camera import Camera
 from control_panel import ControlPanelState, draw_control_panel 
 from object.objects import Object
 from polygon_modeler import PolygonModeler
+from input_handlers import keyboard, mouse, motion
 
 # Variáveis globais
 renderer = None
 camera = Camera()
 ui_state = ControlPanelState() 
 objects: list[Object] = []
+selected_objects: list[Object] = []  # Lista de objetos selecionados
 polygon_modeler = PolygonModeler()
 
 def add_object_to_scene(obj: Object):
@@ -25,52 +27,7 @@ def start_polygon_modeling(depth, completion_callback):
     polygon_modeler.start_modeling(depth, completion_callback)
 
 
-## -------- MOUSE CONTROLS -------- ##
-
-def mouse(button, state, x, y):
-    # Primeiro verificar se está em modo de modelagem
-    if polygon_modeler.handle_mouse(button, state, x, y):
-        return  # Evento processado pela modelagem
-    
-    # Processamento normal do mouse para modo 3D
-    io = imgui.get_io()
-    
-    # 1. ATUALIZAÇÃO IMGUI
-    io.mouse_pos = x, y 
-    if button >= 0 and button < 3: 
-        io.mouse_down[button] = (state == GLUT_DOWN)
-
-    # 2. VERIFICAÇÃO DE INTERAÇÃO IMGUI
-    if io.want_capture_mouse:
-        return
-    
-    # 3. CONTROLE DA CÂMERA 
-    if state == GLUT_DOWN:
-        camera.start_mouse(button, x, y) 
-
-    if button == 3:
-        camera.dolly(-1)
-    elif button == 4:
-        camera.dolly(1)
-
-
-def motion(x, y):
-    # Se está em modelagem, não processar movimento da câmera
-    if polygon_modeler.is_modeling_active():
-        return
-    
-    io = imgui.get_io()
-    
-    # 1. ATUALIZAÇÃO IMGUI 
-    io.mouse_pos = x, y
-    
-    # 2. VERIFICAÇÃO DE INTERAÇÃO IMGUI
-    if io.want_capture_mouse:
-        return
-    
-    # 3. CONTROLE DA CÂMERA 
-    # Move a câmera com as novas coordenadas.
-    camera.move_mouse(x, y)
+## -------- GRID AND AXES -------- ##
 
 
 ## -------- GRID AND AXES -------- ##
@@ -242,8 +199,9 @@ def main():
 
     glutDisplayFunc(display)
     glutIdleFunc(display)
-    glutMouseFunc(mouse)
-    glutMotionFunc(motion)
+    glutMouseFunc(lambda b, s, x, y: mouse(b, s, x, y, polygon_modeler, objects, selected_objects, camera))
+    glutMotionFunc(lambda x, y: motion(x, y, polygon_modeler, camera))
+    glutKeyboardFunc(lambda k, x, y: keyboard(k, x, y, selected_objects, camera))
     glutReshapeFunc(reshape) 
 
     glutMainLoop()
