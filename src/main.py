@@ -157,7 +157,7 @@ def display():
     imgui.new_frame()
 
     # Chamada para a função de desenho do painel de controle com modelagem
-    draw_control_panel(ui_state, add_object_to_scene, start_polygon_modeling, add_light_source)
+    draw_control_panel(ui_state, add_object_to_scene, start_polygon_modeling, add_light_source, clear_scene, light_enabled)
     
     # Verificar se está em modo de modelagem
     if polygon_modeler.is_modeling_active():
@@ -182,6 +182,9 @@ def display():
                   camera.focal_point_x, camera.focal_point_y, camera.focal_point_z,
                   0, 1, 0)
         
+        shading_setup(ui_state)
+        light_setup(ui_state, GL_LIGHT0)
+
         if light_enabled:
             glLightfv(GL_LIGHT1, GL_POSITION, light_position)
 
@@ -247,16 +250,60 @@ def projection_setup(width, height, ui_state):
                     0.1, 100.0)
             
     glMatrixMode(GL_MODELVIEW)
-    # Teste de iluminacao
+    
     glEnable(GL_LIGHTING)
     glEnable(GL_LIGHT0)
     glEnable(GL_NORMALIZE)  # se escalas variadas forem usadas
 
+def clear_scene():
+    """Remove todos os objetos da lista global de objetos da cena."""
+    global objects
+    print(f"Limpando a cena. Total de objetos removidos:")
+    objects.clear()
 
-def light_setup(ui_state):
-    difuse = ui_state.difuse_light
-    ambience = ui_state.ambient_light
-    specular = ui_state.specular_light
+
+def shading_setup(ui_state):
+    shading_mode = ui_state.lightning_options[ui_state.lightning_selected_index]
+
+    if shading_mode == 'Flat':
+        glShadeModel(GL_FLAT)
+        # O Flat shading usa a cor e a normal do primeiro vértice do polígono.
+        # Todos os pixels do polígono terão a mesma cor.
+        
+    elif shading_mode == 'Gouraud':
+        glShadeModel(GL_SMOOTH)
+        # O Smooth shading (Gouraud no OpenGL) interpola as cores
+        # calculadas nos vértices pelos pixels do polígono.
+        
+    elif shading_mode == 'Phong':
+        # Para Phong, que exige shaders, você fará:
+        # 1. Ativar o programa shader (se implementado)
+        # 2. Passar as variáveis uniformes (luz, material, câmera) para o shader.
+        # Por enquanto, vamos manter o Gouraud (Smooth) como fallback visual:
+        glShadeModel(GL_SMOOTH) 
+        print("Atenção: Phong shading requer shaders GLSL, usando Gouraud como fallback.")
+
+def light_setup(ui_state, light_id):
+    # Valores base
+    ambience_base = [0.1, 0.1, 0.1, 1.0]
+    difuse_base = [0.8, 0.8, 0.8, 1.0]
+    specular_base = [1.0, 1.0, 1.0, 1.0]
+    
+    # Aplicar 0.0 se o componente não estiver ativo no painel
+    ambient = ambience_base if ui_state.ambient_light else [0.0, 0.0, 0.0, 1.0]
+    difuse = difuse_base if ui_state.difuse_light else [0.0, 0.0, 0.0, 1.0]
+    specular = specular_base if ui_state.specular_light else [0.0, 0.0, 0.0, 1.0]
+    
+    # Aplica os vetores de cor na fonte de luz (LIGHT0, por exemplo)
+    glLightfv(light_id, GL_AMBIENT, ambient)
+    glLightfv(light_id, GL_DIFFUSE, difuse)
+    glLightfv(light_id, GL_SPECULAR, specular)
+    
+    # Se todos os componentes estiverem desligados, desligamos a luz.
+    if not ui_state.ambient_light and not ui_state.difuse_light and not ui_state.specular_light:
+        glDisable(light_id)
+    else:
+        glEnable(light_id)
 
 def add_light_source():
     """Ativa a fonte de luz e a configura na cena."""
