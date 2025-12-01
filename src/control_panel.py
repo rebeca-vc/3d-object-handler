@@ -41,7 +41,7 @@ class ControlPanelState:
     add_object_callback: função que será chamada para adicionar um objeto à lista.
     start_modeling_callback: função que será chamada para iniciar modelagem poligonal.
 """
-def draw_control_panel(state: ControlPanelState, add_object_callback=None, start_modeling_callback=None):
+def draw_control_panel(state: ControlPanelState, add_object_callback=None, start_modeling_callback=None, add_light_callback=None):
     # Flags para travar a janela
     window_flags = imgui.WINDOW_NO_MOVE | imgui.WINDOW_NO_RESIZE
     imgui.set_next_window_size(400, 500)
@@ -169,6 +169,9 @@ def draw_control_panel(state: ControlPanelState, add_object_callback=None, start
         imgui.text("")
         if imgui.button("Adicionar fonte de luz"):
             print(f"Adicionando fonte de luz")
+            add_light_callback()
+        else:
+            print("Erro: callback de luz não definido")
         imgui.text("")
 
     imgui.end()

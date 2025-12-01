@@ -14,6 +14,8 @@ camera = Camera()
 ui_state = ControlPanelState() 
 objects: list[Object] = []
 polygon_modeler = PolygonModeler()
+light_enabled = False
+light_position = [2.0, 5.0, 2.0, 1.0] 
 
 def add_object_to_scene(obj: Object):
     """Adiciona um objeto à lista global de objetos da cena."""
@@ -122,17 +124,40 @@ def draw_grid(size=10, step=1):
     # Reabilita iluminação
     glEnable(GL_LIGHTING)
 
+## -------- KEYBOARD CONTROLS -------- ##
+
+def keyboard(key, x, y):
+    global light_position, light_enabled
+    step = 0.5 # Velocidade de movimento da luz
+
+    if light_enabled:
+        if key == GLUT_KEY_LEFT:
+            light_position[0] -= step # Move -X
+        elif key == GLUT_KEY_RIGHT:
+            light_position[0] += step # Move +X
+        elif key == GLUT_KEY_UP:
+            light_position[2] -= step # Move -Z
+        elif key == GLUT_KEY_DOWN:
+            light_position[2] += step # Move +Z
+
+        # Movimentação no eixo Y
+        elif key == b'w': 
+            light_position[1] += step
+        elif key == b's':
+            light_position[1] -= step
+
+        glutPostRedisplay() # Redesenha a cena para ver a luz se mover
 
 ## -------- GLUT BASIC -------- ##
 
 def display():
-    global renderer, ui_state # Usamos o ui_state global
+    global renderer, ui_state 
 
     # Início do frame do ImGui
     imgui.new_frame()
 
     # Chamada para a função de desenho do painel de controle com modelagem
-    draw_control_panel(ui_state, add_object_to_scene, start_polygon_modeling)
+    draw_control_panel(ui_state, add_object_to_scene, start_polygon_modeling, add_light_source)
     
     # Verificar se está em modo de modelagem
     if polygon_modeler.is_modeling_active():
@@ -145,6 +170,7 @@ def display():
         h = glutGet(GLUT_WINDOW_HEIGHT)
         projection_setup(w, h, ui_state)
 
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         glMatrixMode(GL_MODELVIEW)
@@ -155,6 +181,19 @@ def display():
         gluLookAt(camera.camera_position_x, camera.camera_position_y, camera.camera_position_z,
                   camera.focal_point_x, camera.focal_point_y, camera.focal_point_z,
                   0, 1, 0)
+        
+        if light_enabled:
+            glLightfv(GL_LIGHT1, GL_POSITION, light_position)
+
+            # Desenha um marcador para a luz (opcional)
+            glDisable(GL_LIGHTING)
+            glPushMatrix()
+            glTranslatef(light_position[0], light_position[1], light_position[2])
+            glColor3f(1.0, 1.0, 0.0) # Luz amarela
+            glutWireSphere(0.2, 8, 8) # Desenha uma esfera
+            glPopMatrix()
+            glEnable(GL_LIGHTING)
+
 
         # Drawing Grid and Axes
         draw_axes()
@@ -213,6 +252,38 @@ def projection_setup(width, height, ui_state):
     glEnable(GL_LIGHT0)
     glEnable(GL_NORMALIZE)  # se escalas variadas forem usadas
 
+
+def light_setup(ui_state):
+    difuse = ui_state.difuse_light
+    ambience = ui_state.ambient_light
+    specular = ui_state.specular_light
+
+def add_light_source():
+    """Ativa a fonte de luz e a configura na cena."""
+    global light_enabled
+
+    if not light_enabled:
+        glEnable(GL_LIGHTING)
+        glEnable(GL_LIGHT1) # Usar LIGHT1 para nossa luz móvel (LIGHT0 é para a luz padrão)
+
+        # Cor da luz (ex: branca)
+        light_ambient  = [0.2, 0.2, 0.2, 1.0]
+        light_diffuse  = [0.8, 0.8, 0.8, 1.0]
+        light_specular = [1.0, 1.0, 1.0, 1.0]
+
+        glLightfv(GL_LIGHT1, GL_AMBIENT,  light_ambient)
+        glLightfv(GL_LIGHT1, GL_DIFFUSE,  light_diffuse)
+        glLightfv(GL_LIGHT1, GL_SPECULAR, light_specular)
+
+        # Configura a posição inicial (será feita no `display` também)
+        glLightfv(GL_LIGHT1, GL_POSITION, light_position)
+
+        light_enabled = True
+        print("Fonte de luz LIGHT1 adicionada e ativada.")
+    else:
+        print("A fonte de luz LIGHT1 já está ativa.")
+
+
 def main():
     global renderer
 
@@ -245,6 +316,8 @@ def main():
     glutMouseFunc(mouse)
     glutMotionFunc(motion)
     glutReshapeFunc(reshape) 
+    glutSpecialFunc(keyboard) 
+    glutKeyboardFunc(keyboard) 
 
     glutMainLoop()
 
