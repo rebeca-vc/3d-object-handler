@@ -19,7 +19,7 @@ objects: list[Object] = []
 selected_objects: list[Object] = []  # Lista de objetos selecionados
 polygon_modeler = PolygonModeler()
 lighting_controller = LightingController()
-shading_controller = ShadingController()
+shading_controller = None
 
 ## -------- OBJECT CONTROLS ------- ##
 
@@ -201,9 +201,12 @@ def display():
     glutSwapBuffers()
 
 def init():
+    global shading_controller
+    
     glClearColor(0.1, 0.1, 0.1, 1.0)
     glEnable(GL_DEPTH_TEST)
     lighting_controller.initialize_global_lighting()
+    shading_controller = ShadingController()    
 
 def main():
     global renderer
