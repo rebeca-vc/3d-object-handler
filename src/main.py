@@ -7,15 +7,16 @@ from camera import Camera
 from control_panel import ControlPanelState, draw_control_panel 
 from object.objects import Object
 from polygon_modeler import PolygonModeler
+from lighting_models import LightingController
 
-# Variáveis globais
 renderer = None
 camera = Camera()
 ui_state = ControlPanelState() 
 objects: list[Object] = []
 polygon_modeler = PolygonModeler()
-light_enabled = False
-light_position = [2.0, 5.0, 2.0, 1.0] 
+lighting_controller = LightingController()
+
+## -------- OBJECT CONTROLS ------- ##
 
 def add_object_to_scene(obj: Object):
     """Adiciona um objeto à lista global de objetos da cena."""
@@ -74,6 +75,31 @@ def motion(x, y):
     # Move a câmera com as novas coordenadas.
     camera.move_mouse(x, y)
 
+## -------- KEYBOARD CONTROLS -------- ##
+
+def keyboard(key, x, y):
+    if polygon_modeler.is_modeling_active():
+        return
+    
+    step = 0.5 
+    # Movimentação da luz móvel
+    if lighting_controller.light_enabled:
+        if key == GLUT_KEY_LEFT:
+            lighting_controller.update_light_position('LEFT', step)
+        elif key == GLUT_KEY_RIGHT:
+            lighting_controller.update_light_position('RIGHT', step)
+        elif key == GLUT_KEY_UP:
+            lighting_controller.update_light_position('UP', step)
+        elif key == GLUT_KEY_DOWN:
+            lighting_controller.update_light_position('DOWN', step)
+
+        elif key == b'w': 
+            lighting_controller.update_light_position('ELEVATE', step)
+        elif key == b's':
+            lighting_controller.update_light_position('LOWER', step)
+
+        glutPostRedisplay()
+
 
 ## -------- GRID AND AXES -------- ##
 
@@ -124,108 +150,20 @@ def draw_grid(size=10, step=1):
     # Reabilita iluminação
     glEnable(GL_LIGHTING)
 
-## -------- KEYBOARD CONTROLS -------- ##
-
-def keyboard(key, x, y):
-    global light_position, light_enabled
-    step = 0.5 # Velocidade de movimento da luz
-
-    if light_enabled:
-        if key == GLUT_KEY_LEFT:
-            light_position[0] -= step # Move -X
-        elif key == GLUT_KEY_RIGHT:
-            light_position[0] += step # Move +X
-        elif key == GLUT_KEY_UP:
-            light_position[2] -= step # Move -Z
-        elif key == GLUT_KEY_DOWN:
-            light_position[2] += step # Move +Z
-
-        # Movimentação no eixo Y
-        elif key == b'w': 
-            light_position[1] += step
-        elif key == b's':
-            light_position[1] -= step
-
-        glutPostRedisplay() # Redesenha a cena para ver a luz se mover
-
-## -------- GLUT BASIC -------- ##
-
-def display():
-    global renderer, ui_state 
-
-    # Início do frame do ImGui
-    imgui.new_frame()
-
-    # Chamada para a função de desenho do painel de controle com modelagem
-    draw_control_panel(ui_state, add_object_to_scene, start_polygon_modeling, add_light_source, clear_scene, light_enabled)
-    
-    # Verificar se está em modo de modelagem
-    if polygon_modeler.is_modeling_active():
-        # Renderização 2D para modelagem
-        glClear(GL_COLOR_BUFFER_BIT)
-        polygon_modeler.render_modeling_interface()
-    else:
-        # Renderização 3D normal
-        w = glutGet(GLUT_WINDOW_WIDTH)
-        h = glutGet(GLUT_WINDOW_HEIGHT)
-        projection_setup(w, h, ui_state)
-
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-
-        glMatrixMode(GL_MODELVIEW)
-        glLoadIdentity()
-
-        # Camera update
-        camera.update()
-        gluLookAt(camera.camera_position_x, camera.camera_position_y, camera.camera_position_z,
-                  camera.focal_point_x, camera.focal_point_y, camera.focal_point_z,
-                  0, 1, 0)
-        
-        shading_setup(ui_state)
-        light_setup(ui_state, GL_LIGHT0)
-
-        if light_enabled:
-            glLightfv(GL_LIGHT1, GL_POSITION, light_position)
-
-            # Desenha um marcador para a luz (opcional)
-            glDisable(GL_LIGHTING)
-            glPushMatrix()
-            glTranslatef(light_position[0], light_position[1], light_position[2])
-            glColor3f(1.0, 1.0, 0.0) # Luz amarela
-            glutWireSphere(0.2, 8, 8) # Desenha uma esfera
-            glPopMatrix()
-            glEnable(GL_LIGHTING)
-
-
-        # Drawing Grid and Axes
-        draw_axes()
-        draw_grid()
-
-        # Desenha cada objeto
-        for obj in objects:
-            obj.draw()
-
-    # --- Renderização do ImGui ---
-    imgui.render()
-    renderer.render(imgui.get_draw_data())
-
-    glutSwapBuffers()
+# ----- OTHER FUNCTIONS ----- #
 
 def reshape(w, h):
     glViewport(0, 0, w, h)
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
     
-    # A projeção deve ser ajustada com base no ui_state se quisermos alternar entre paralela/perspectiva
-    # Por agora, mantemos a perspectiva, mas a lógica de escolha pode vir do ui_state.projection_selected_index
-    gluPerspective(60.0, w / float(h), 0.1, 100.0)
-    
     imgui.get_io().display_size = w, h
 
-def init():
-    glClearColor(0.1, 0.1, 0.1, 1.0)
-    glEnable(GL_DEPTH_TEST)
+def clear_scene():
+    """Remove todos os objetos da lista global de objetos da cena."""
+    global objects
+    print(f"Limpando a cena. Total de objetos removidos:")
+    objects.clear()
 
 def projection_setup(width, height, ui_state):
     glMatrixMode(GL_PROJECTION)
@@ -255,12 +193,7 @@ def projection_setup(width, height, ui_state):
     glEnable(GL_LIGHT0)
     glEnable(GL_NORMALIZE)  # se escalas variadas forem usadas
 
-def clear_scene():
-    """Remove todos os objetos da lista global de objetos da cena."""
-    global objects
-    print(f"Limpando a cena. Total de objetos removidos:")
-    objects.clear()
-
+## ---- Shading --- TODO: Colocar na classes 
 
 def shading_setup(ui_state):
     shading_mode = ui_state.lightning_options[ui_state.lightning_selected_index]
@@ -283,53 +216,63 @@ def shading_setup(ui_state):
         glShadeModel(GL_SMOOTH) 
         print("Atenção: Phong shading requer shaders GLSL, usando Gouraud como fallback.")
 
-def light_setup(ui_state, light_id):
-    # Valores base
-    ambience_base = [0.1, 0.1, 0.1, 1.0]
-    difuse_base = [0.8, 0.8, 0.8, 1.0]
-    specular_base = [1.0, 1.0, 1.0, 1.0]
+
+## -------- GLUT BASIC -------- ##
+
+def display():
+    global renderer, ui_state 
+
+    # Início do frame do ImGui
+    imgui.new_frame()
+
+    # Chamada para a função de desenho do painel de controle com modelagem
+    draw_control_panel(ui_state, add_object_to_scene, start_polygon_modeling, lighting_controller.enable_movable_light, clear_scene, lighting_controller.light_enabled)
     
-    # Aplicar 0.0 se o componente não estiver ativo no painel
-    ambient = ambience_base if ui_state.ambient_light else [0.0, 0.0, 0.0, 1.0]
-    difuse = difuse_base if ui_state.difuse_light else [0.0, 0.0, 0.0, 1.0]
-    specular = specular_base if ui_state.specular_light else [0.0, 0.0, 0.0, 1.0]
-    
-    # Aplica os vetores de cor na fonte de luz (LIGHT0, por exemplo)
-    glLightfv(light_id, GL_AMBIENT, ambient)
-    glLightfv(light_id, GL_DIFFUSE, difuse)
-    glLightfv(light_id, GL_SPECULAR, specular)
-    
-    # Se todos os componentes estiverem desligados, desligamos a luz.
-    if not ui_state.ambient_light and not ui_state.difuse_light and not ui_state.specular_light:
-        glDisable(light_id)
+    # Verificar se está em modo de modelagem
+    if polygon_modeler.is_modeling_active():
+        # Renderização 2D para modelagem
+        glClear(GL_COLOR_BUFFER_BIT)
+        polygon_modeler.render_modeling_interface()
     else:
-        glEnable(light_id)
+        # Renderização 3D normal
+        w = glutGet(GLUT_WINDOW_WIDTH)
+        h = glutGet(GLUT_WINDOW_HEIGHT)
+        projection_setup(w, h, ui_state)
 
-def add_light_source():
-    """Ativa a fonte de luz e a configura na cena."""
-    global light_enabled
 
-    if not light_enabled:
-        glEnable(GL_LIGHTING)
-        glEnable(GL_LIGHT1) # Usar LIGHT1 para nossa luz móvel (LIGHT0 é para a luz padrão)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        # Cor da luz (ex: branca)
-        light_ambient  = [0.2, 0.2, 0.2, 1.0]
-        light_diffuse  = [0.8, 0.8, 0.8, 1.0]
-        light_specular = [1.0, 1.0, 1.0, 1.0]
+        glMatrixMode(GL_MODELVIEW)
+        glLoadIdentity()
 
-        glLightfv(GL_LIGHT1, GL_AMBIENT,  light_ambient)
-        glLightfv(GL_LIGHT1, GL_DIFFUSE,  light_diffuse)
-        glLightfv(GL_LIGHT1, GL_SPECULAR, light_specular)
+        # Camera update
+        camera.update()
+        gluLookAt(camera.camera_position_x, camera.camera_position_y, camera.camera_position_z,
+                  camera.focal_point_x, camera.focal_point_y, camera.focal_point_z,
+                  0, 1, 0)
+        
+        shading_setup(ui_state)
+        lighting_controller.light_setup(ui_state.ambient_light, ui_state.difuse_light, ui_state.specular_light)        
+        lighting_controller.apply_light_position()
 
-        # Configura a posição inicial (será feita no `display` também)
-        glLightfv(GL_LIGHT1, GL_POSITION, light_position)
+        # Drawing Grid and Axes
+        draw_axes()
+        draw_grid()
 
-        light_enabled = True
-        print("Fonte de luz LIGHT1 adicionada e ativada.")
-    else:
-        print("A fonte de luz LIGHT1 já está ativa.")
+        # Desenha cada objeto
+        for obj in objects:
+            obj.draw()
 
+    # --- Renderização do ImGui ---
+    imgui.render()
+    renderer.render(imgui.get_draw_data())
+
+    glutSwapBuffers()
+
+def init():
+    glClearColor(0.1, 0.1, 0.1, 1.0)
+    glEnable(GL_DEPTH_TEST)
+    lighting_controller.initialize_global_lighting()
 
 def main():
     global renderer
