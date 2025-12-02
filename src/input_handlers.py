@@ -5,7 +5,30 @@ import imgui
 from object_selection import pick_object
 
 
-def keyboard(key, x, y, selected_objects, camera):
+def keyboard(key, x, y, polygon_modeler, selected_objects, camera, light_enabled, light):
+    if polygon_modeler.is_modeling_active():
+        return
+    
+    step = 0.5 
+    # Movimentação da luz móvel
+    if light_enabled:
+        if key == GLUT_KEY_LEFT:
+            light.update_light_position('LEFT', step)
+        elif key == GLUT_KEY_RIGHT:
+            light.update_light_position('RIGHT', step)
+        elif key == GLUT_KEY_UP:
+            light.update_light_position('UP', step)
+        elif key == GLUT_KEY_DOWN:
+            light.update_light_position('DOWN', step)
+
+        elif key == b'r': 
+            light.update_light_position('ELEVATE', step)
+        elif key == b'f':
+            light.update_light_position('LOWER', step)
+
+        glutPostRedisplay()
+
+
     """Controle de teclado para WASD (movimento XY), Q/E (movimento Z) e Ctrl+WASD/Q/E (rotação)."""
     if not selected_objects:
         return
