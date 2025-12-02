@@ -3,11 +3,13 @@ from OpenGL.GLU import *
 from OpenGL.GLUT import *
 import imgui
 from imgui.integrations.opengl import ProgrammablePipelineRenderer # troquei pra resolver a hud
-from camera import Camera
-from control_panel import ControlPanelState, draw_control_panel 
+
+from ui_controls.camera import Camera
+from ui_controls.control_panel import ControlPanelState, draw_control_panel 
 from object.objects import Object
 from polygon_modeler import PolygonModeler
-from lighting_models import LightingController
+from light.lighting_models import LightingController
+from light.shading_controller import ShadingController
 
 renderer = None
 camera = Camera()
@@ -15,6 +17,7 @@ ui_state = ControlPanelState()
 objects: list[Object] = []
 polygon_modeler = PolygonModeler()
 lighting_controller = LightingController()
+shading_controller = ShadingController()
 
 ## -------- OBJECT CONTROLS ------- ##
 
@@ -251,7 +254,7 @@ def display():
                   camera.focal_point_x, camera.focal_point_y, camera.focal_point_z,
                   0, 1, 0)
         
-        shading_setup(ui_state)
+        shading_controller.apply_shading(ui_state.lightning_options[ui_state.lightning_selected_index])
         lighting_controller.light_setup(ui_state.ambient_light, ui_state.difuse_light, ui_state.specular_light)        
         lighting_controller.apply_light_position()
 
