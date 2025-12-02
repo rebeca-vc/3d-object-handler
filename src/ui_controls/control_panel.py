@@ -41,10 +41,10 @@ class ControlPanelState:
     add_object_callback: função que será chamada para adicionar um objeto à lista.
     start_modeling_callback: função que será chamada para iniciar modelagem poligonal.
 """
-def draw_control_panel(state: ControlPanelState, add_object_callback=None, start_modeling_callback=None):
+def draw_control_panel(state: ControlPanelState, add_object_callback=None, start_modeling_callback=None, add_light_callback=None, clear_scene=None, light_enabled=None):
     # Flags para travar a janela
     window_flags = imgui.WINDOW_NO_MOVE | imgui.WINDOW_NO_RESIZE
-    imgui.set_next_window_size(400, 500)
+    imgui.set_next_window_size(400, 550)
     
     # Aplica as flags
     is_open, _ = imgui.begin("Painel de Controle", flags=window_flags)
@@ -151,24 +151,35 @@ def draw_control_panel(state: ControlPanelState, add_object_callback=None, start
         if changed_proj:
             print(f"Projeção alterada para: {state.projection_options[state.projection_selected_index]}")
 
-        # Iluminação
-        changed_light, state.lightning_selected_index = imgui.combo(
-            "Modelo de Shading", 
-            state.lightning_selected_index, 
-            state.lightning_options
-        )
-        if changed_light:
-            print(f"Shading alterado para: {state.lightning_options[state.lightning_selected_index]}")
+        if light_enabled:
+            # Iluminação
+            changed_light, state.lightning_selected_index = imgui.combo(
+                "Modelo de Shading", 
+                state.lightning_selected_index, 
+                state.lightning_options
+            )
+            if changed_light:
+                print(f"Shading alterado para: {state.lightning_options[state.lightning_selected_index]}")
 
-        # Componentes de Luz
-        imgui.text("Componentes da Luz:")
-        _, state.ambient_light = imgui.checkbox("Ambiente", state.ambient_light)
-        _, state.difuse_light = imgui.checkbox("Difusa", state.difuse_light)
-        _, state.specular_light = imgui.checkbox("Especular", state.specular_light)
+            # Componentes de Luz
 
+            imgui.text("Componentes da Luz:")
+            _, state.ambient_light = imgui.checkbox("Ambiente", state.ambient_light)
+            _, state.difuse_light = imgui.checkbox("Difusa", state.difuse_light)
+            _, state.specular_light = imgui.checkbox("Especular", state.specular_light)
+            
         imgui.text("")
         if imgui.button("Adicionar fonte de luz"):
             print(f"Adicionando fonte de luz")
+            add_light_callback()
         imgui.text("")
+
+        imgui.separator() # Separador visual
+
+        if imgui.button("Remover Todos os Objetos"):
+            if clear_scene:
+                clear_scene()
+
+        imgui.separator()
 
     imgui.end()
