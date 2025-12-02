@@ -36,7 +36,7 @@ class Object:
 		self,
 		shape: str = 'cube',
 		material: str = 'white_plastic',
-		shading_model: int = GL_SMOOTH,
+		shading_model: int = GL_FLAT,
 	):
 		self.shape = shape.lower()
 		self.position = (0.0, 0.0, 0.0)
@@ -137,8 +137,6 @@ class Object:
 	def draw(self):
 		glPushMatrix()
 		try:
-			# Sombreamento (flat vs smooth) - global state, setado por objeto
-			glShadeModel(self.shading_model)
 			# Usa matriz modelo pré-calculada
 			glMultMatrixf(self._matrix)
 			# Material (define como luz interage)

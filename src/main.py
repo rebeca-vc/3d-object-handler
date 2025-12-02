@@ -3,17 +3,25 @@ from OpenGL.GLU import *
 from OpenGL.GLUT import *
 import imgui
 from imgui.integrations.opengl import ProgrammablePipelineRenderer # troquei pra resolver a hud
-from camera import Camera
-from control_panel import ControlPanelState, draw_control_panel 
+
+from ui_controls.camera import Camera
+from ui_controls.control_panel import ControlPanelState, draw_control_panel 
 from object.objects import Object
 from polygon_modeler import PolygonModeler
+from input_handlers import keyboard, mouse, motion
+from light.lighting_models import LightingController
+from light.shading_controller import ShadingController
 
-# Variáveis globais
 renderer = None
 camera = Camera()
 ui_state = ControlPanelState() 
 objects: list[Object] = []
+selected_objects: list[Object] = []  # Lista de objetos selecionados
 polygon_modeler = PolygonModeler()
+lighting_controller = LightingController()
+shading_controller = ShadingController()
+
+## -------- OBJECT CONTROLS ------- ##
 
 def add_object_to_scene(obj: Object):
     """Adiciona um objeto à lista global de objetos da cena."""
@@ -23,55 +31,6 @@ def add_object_to_scene(obj: Object):
 def start_polygon_modeling(depth, completion_callback):
     """Inicia modo de modelagem poligonal."""
     polygon_modeler.start_modeling(depth, completion_callback)
-
-
-## -------- MOUSE CONTROLS -------- ##
-
-def mouse(button, state, x, y):
-    # Primeiro verificar se está em modo de modelagem
-    if polygon_modeler.handle_mouse(button, state, x, y):
-        return  # Evento processado pela modelagem
-    
-    # Processamento normal do mouse para modo 3D
-    io = imgui.get_io()
-    
-    # 1. ATUALIZAÇÃO IMGUI
-    io.mouse_pos = x, y 
-    if button >= 0 and button < 3: 
-        io.mouse_down[button] = (state == GLUT_DOWN)
-
-    # 2. VERIFICAÇÃO DE INTERAÇÃO IMGUI
-    if io.want_capture_mouse:
-        return
-    
-    # 3. CONTROLE DA CÂMERA 
-    if state == GLUT_DOWN:
-        camera.start_mouse(button, x, y) 
-
-    if button == 3:
-        camera.dolly(-1)
-    elif button == 4:
-        camera.dolly(1)
-
-
-def motion(x, y):
-    # Se está em modelagem, não processar movimento da câmera
-    if polygon_modeler.is_modeling_active():
-        return
-    
-    io = imgui.get_io()
-    
-    # 1. ATUALIZAÇÃO IMGUI 
-    io.mouse_pos = x, y
-    
-    # 2. VERIFICAÇÃO DE INTERAÇÃO IMGUI
-    if io.want_capture_mouse:
-        return
-    
-    # 3. CONTROLE DA CÂMERA 
-    # Move a câmera com as novas coordenadas.
-    camera.move_mouse(x, y)
-
 
 ## -------- GRID AND AXES -------- ##
 
@@ -122,68 +81,20 @@ def draw_grid(size=10, step=1):
     # Reabilita iluminação
     glEnable(GL_LIGHTING)
 
-
-## -------- GLUT BASIC -------- ##
-
-def display():
-    global renderer, ui_state # Usamos o ui_state global
-
-    # Início do frame do ImGui
-    imgui.new_frame()
-
-    # Chamada para a função de desenho do painel de controle com modelagem
-    draw_control_panel(ui_state, add_object_to_scene, start_polygon_modeling)
-    
-    # Verificar se está em modo de modelagem
-    if polygon_modeler.is_modeling_active():
-        # Renderização 2D para modelagem
-        glClear(GL_COLOR_BUFFER_BIT)
-        polygon_modeler.render_modeling_interface()
-    else:
-        # Renderização 3D normal
-        w = glutGet(GLUT_WINDOW_WIDTH)
-        h = glutGet(GLUT_WINDOW_HEIGHT)
-        projection_setup(w, h, ui_state)
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-
-        glMatrixMode(GL_MODELVIEW)
-        glLoadIdentity()
-
-        # Camera update
-        camera.update()
-        gluLookAt(camera.camera_position_x, camera.camera_position_y, camera.camera_position_z,
-                  camera.focal_point_x, camera.focal_point_y, camera.focal_point_z,
-                  0, 1, 0)
-
-        # Drawing Grid and Axes
-        draw_axes()
-        draw_grid()
-
-        # Desenha cada objeto
-        for obj in objects:
-            obj.draw()
-
-    # --- Renderização do ImGui ---
-    imgui.render()
-    renderer.render(imgui.get_draw_data())
-
-    glutSwapBuffers()
+# ----- OTHER FUNCTIONS ----- #
 
 def reshape(w, h):
     glViewport(0, 0, w, h)
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
     
-    # A projeção deve ser ajustada com base no ui_state se quisermos alternar entre paralela/perspectiva
-    # Por agora, mantemos a perspectiva, mas a lógica de escolha pode vir do ui_state.projection_selected_index
-    gluPerspective(60.0, w / float(h), 0.1, 100.0)
-    
     imgui.get_io().display_size = w, h
 
-def init():
-    glClearColor(0.1, 0.1, 0.1, 1.0)
-    glEnable(GL_DEPTH_TEST)
+def clear_scene():
+    """Remove todos os objetos da lista global de objetos da cena."""
+    global objects
+    print(f"Limpando a cena. Total de objetos removidos:")
+    objects.clear()
 
 def projection_setup(width, height, ui_state):
     glMatrixMode(GL_PROJECTION)
@@ -208,10 +119,91 @@ def projection_setup(width, height, ui_state):
                     0.1, 100.0)
             
     glMatrixMode(GL_MODELVIEW)
-    # Teste de iluminacao
+    
     glEnable(GL_LIGHTING)
     glEnable(GL_LIGHT0)
     glEnable(GL_NORMALIZE)  # se escalas variadas forem usadas
+
+## ---- Shading --- TODO: Colocar na classes 
+
+def shading_setup(ui_state):
+    shading_mode = ui_state.lightning_options[ui_state.lightning_selected_index]
+
+    if shading_mode == 'Flat':
+        glShadeModel(GL_FLAT)
+        # O Flat shading usa a cor e a normal do primeiro vértice do polígono.
+        # Todos os pixels do polígono terão a mesma cor.
+        
+    elif shading_mode == 'Gouraud':
+        glShadeModel(GL_SMOOTH)
+        # O Smooth shading (Gouraud no OpenGL) interpola as cores
+        # calculadas nos vértices pelos pixels do polígono.
+        
+    elif shading_mode == 'Phong':
+        # Para Phong, que exige shaders, você fará:
+        # 1. Ativar o programa shader (se implementado)
+        # 2. Passar as variáveis uniformes (luz, material, câmera) para o shader.
+        # Por enquanto, vamos manter o Gouraud (Smooth) como fallback visual:
+        glShadeModel(GL_SMOOTH) 
+        print("Atenção: Phong shading requer shaders GLSL, usando Gouraud como fallback.")
+
+
+## -------- GLUT BASIC -------- ##
+
+def display():
+    global renderer, ui_state 
+
+    # Início do frame do ImGui
+    imgui.new_frame()
+
+    # Chamada para a função de desenho do painel de controle com modelagem
+    draw_control_panel(ui_state, add_object_to_scene, start_polygon_modeling, lighting_controller.enable_movable_light, clear_scene, lighting_controller.light_enabled)
+    
+    # Verificar se está em modo de modelagem
+    if polygon_modeler.is_modeling_active():
+        # Renderização 2D para modelagem
+        glClear(GL_COLOR_BUFFER_BIT)
+        polygon_modeler.render_modeling_interface()
+    else:
+        # Renderização 3D normal
+        w = glutGet(GLUT_WINDOW_WIDTH)
+        h = glutGet(GLUT_WINDOW_HEIGHT)
+        projection_setup(w, h, ui_state)
+
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+        glMatrixMode(GL_MODELVIEW)
+        glLoadIdentity()
+
+        # Camera update
+        camera.update()
+        gluLookAt(camera.camera_position_x, camera.camera_position_y, camera.camera_position_z,
+                  camera.focal_point_x, camera.focal_point_y, camera.focal_point_z,
+                  0, 1, 0)
+        
+        shading_controller.apply_shading(ui_state.lightning_options[ui_state.lightning_selected_index])
+        lighting_controller.light_setup(ui_state.ambient_light, ui_state.difuse_light, ui_state.specular_light)        
+        lighting_controller.apply_light_position()
+
+        # Drawing Grid and Axes
+        draw_axes()
+        draw_grid()
+
+        # Desenha cada objeto
+        for obj in objects:
+            obj.draw()
+
+    # --- Renderização do ImGui ---
+    imgui.render()
+    renderer.render(imgui.get_draw_data())
+
+    glutSwapBuffers()
+
+def init():
+    glClearColor(0.1, 0.1, 0.1, 1.0)
+    glEnable(GL_DEPTH_TEST)
+    lighting_controller.initialize_global_lighting()
 
 def main():
     global renderer
@@ -242,9 +234,11 @@ def main():
 
     glutDisplayFunc(display)
     glutIdleFunc(display)
-    glutMouseFunc(mouse)
-    glutMotionFunc(motion)
+    glutMouseFunc(lambda b, s, x, y: mouse(b, s, x, y, polygon_modeler, objects, selected_objects, camera))
+    glutMotionFunc(lambda x, y: motion(x, y, polygon_modeler, camera))
+    glutKeyboardFunc(lambda k, x, y: keyboard(k, x, y, polygon_modeler, selected_objects, camera, lighting_controller.light_enabled, lighting_controller))
     glutReshapeFunc(reshape) 
+    glutSpecialFunc(lambda k, x, y: keyboard(k, x, y, polygon_modeler, selected_objects, camera, lighting_controller.light_enabled, lighting_controller)) 
 
     glutMainLoop()
 
