@@ -27,7 +27,7 @@ class LightingController:
     """
     def initialize_global_lighting(self):
         glEnable(GL_LIGHTING)
-        glEnable(GL_NORMALIZE) # Garante que as normais sejam unitárias
+        glEnable(GL_NORMALIZE) 
         
         # Configuração da Luz Padrão (LIGHT0)
         glEnable(GL_LIGHT0)
@@ -57,7 +57,7 @@ class LightingController:
         if not self.light_enabled:
             return
             
-        # O self.light_position tem o formato [x, y, z, w]
+        # O self.light_position = [x, y, z, w]
         if key_direction == 'LEFT':
             self.light_position[0] -= step
         elif key_direction == 'RIGHT':
@@ -98,7 +98,7 @@ class LightingController:
         difuse = difuse_base if difuse_light else [0.0, 0.0, 0.0, 1.0]
         specular = specular_base if specular_light else [0.0, 0.0, 0.0, 1.0]
         
-        # Aplica os vetores de cor na fonte de luz (LIGHT0, por exemplo)
+        # Aplica os vetores de cor na fonte de luz 
         glLightfv(self.light_id, GL_AMBIENT, ambient)
         glLightfv(self.light_id, GL_DIFFUSE, difuse)
         glLightfv(self.light_id, GL_SPECULAR, specular)
