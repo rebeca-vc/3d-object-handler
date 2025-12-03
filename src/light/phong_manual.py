@@ -18,7 +18,7 @@ class PhongManual:
     """
     def render_object(self, obj, camera_pos, light_pos, light_colors):
 
-        # Captura as matrizes DO CENÁRIO 3D ATUAL (para projetar os vértices corretamente)
+        # Captura as matrizes do cenário atual 
         model_view = glGetDoublev(GL_MODELVIEW_MATRIX) 
         projection = glGetDoublev(GL_PROJECTION_MATRIX) 
         viewport = glGetIntegerv(GL_VIEWPORT) 
@@ -50,7 +50,6 @@ class PhongManual:
                 triangle_vertex1 = vertices[indice_vertice1]
                 triangle_vertex2 = vertices[indice_vertice2]
                 
-                # print(triangle_vertex0, triangle_vertex1, triangle_vertex2)
                 # Rasteriza cada triângulo da face
                 self._rasterize_triangle(triangle_vertex0, triangle_vertex1, triangle_vertex2, model_view, projection, viewport, camera_pos, light_pos, light_colors, obj.material)
         
