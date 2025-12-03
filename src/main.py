@@ -2,7 +2,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 import imgui
-from imgui.integrations.opengl import ProgrammablePipelineRenderer # troquei pra resolver a hud
+from imgui.integrations.opengl import ProgrammablePipelineRenderer 
 
 from ui_controls.camera import Camera
 from ui_controls.control_panel import ControlPanelState, draw_control_panel 
@@ -17,7 +17,7 @@ renderer = None
 camera = Camera()
 ui_state = ControlPanelState() 
 objects: list[Object] = []
-selected_objects: list[Object] = []  # Lista de objetos selecionados
+selected_objects: list[Object] = []  
 polygon_modeler = PolygonModeler()
 lighting_controller = LightingController()
 phong_manual = PhongManual()
@@ -200,15 +200,11 @@ def display():
                 # Renderiza Manualmente
                 phong_manual.render_object(obj, camera_pos, light_pos, light_colors)
                 
-                # CRUCIAL: Restaura o estado para os próximos objetos ou próximo frame
+               
                 glEnable(GL_LIGHTING) 
-                # Reaplica o shader GLSL se estivesse selecionado, 
-                # caso você tenha mais de um objeto e só um deles esteja sendo renderizado manualmente
                 shading_controller.apply_shading(ui_state.lightning_options[ui_state.lightning_selected_index], False) 
 
             else:
-                # --- RENDERIZAÇÃO PADRÃO (OpenGL/Shader) ---
-                # Garante que iluminação está ligada (caso o manual tenha desligado no loop anterior)
                 glEnable(GL_LIGHTING) 
                 obj.draw()
 
