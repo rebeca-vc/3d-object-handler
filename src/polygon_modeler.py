@@ -4,10 +4,7 @@ from OpenGL.GLUT import *
 import sys
 import os
 from object.extruded_object import ExtrudedObject
-# Importação direta do polygon-filling modificado
-sys.path.append(os.path.join(os.path.dirname(__file__), 'polygon-filling'))
-
-from polygon_modeling import PolygonEditor
+from polygon_filling.polygon_modeling import PolygonEditor
 
 
 class AppState:
