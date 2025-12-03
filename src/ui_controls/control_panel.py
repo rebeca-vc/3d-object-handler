@@ -53,7 +53,6 @@ def draw_control_panel(state: ControlPanelState, add_object_callback=None, start
     if is_open:
 
         # OBJETOS
-
         imgui.text("Adição de Objetos Primitivos")
         
         changed, state.object_selected_index = imgui.combo(
@@ -62,7 +61,6 @@ def draw_control_panel(state: ControlPanelState, add_object_callback=None, start
             state.object_options
         )
         
-        # Cor do Material (Exemplo)
         changed_color, state.object_color = imgui.color_edit3("Cor do Material", *state.object_color)
         if changed_color:
             print(f"Cor alterada para: {state.object_color}")
@@ -111,7 +109,6 @@ def draw_control_panel(state: ControlPanelState, add_object_callback=None, start
 
         imgui.text("")
         # --- Seção de Objeto Arbitrário --- #
-
         imgui.separator()
 
         imgui.text("Objeto Poligonal Arbitrário")
@@ -160,12 +157,12 @@ def draw_control_panel(state: ControlPanelState, add_object_callback=None, start
                 print(f"Shading alterado para: {state.lightning_options[state.lightning_selected_index]}")
 
             # Componentes de Luz
-
             imgui.text("Componentes da Luz:")
             _, state.ambient_light = imgui.checkbox("Ambiente", state.ambient_light)
             _, state.difuse_light = imgui.checkbox("Difusa", state.difuse_light)
             _, state.specular_light = imgui.checkbox("Especular", state.specular_light)
-        
+
+        # Phong manual
         if state.lightning_options[state.lightning_selected_index] == "Phong":
             _, state.phong_manual = imgui.checkbox("Phong Manual", state.phong_manual)
             
@@ -175,7 +172,7 @@ def draw_control_panel(state: ControlPanelState, add_object_callback=None, start
             add_light_callback()
         imgui.text("")
 
-        imgui.separator() # Separador visual
+        imgui.separator()
 
         if imgui.button("Remover Todos os Objetos"):
             if clear_scene:
