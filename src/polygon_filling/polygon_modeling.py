@@ -1,8 +1,8 @@
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
-from assets.polygon import Polygon
-from assets.mouse import handle_modeling_mouse
+from polygon_filling.assets.polygon import Polygon
+from polygon_filling.assets.mouse import handle_modeling_mouse
 
 class PolygonEditor:
     """Editor 2D minimalista: captura vértices, aplica scanline e desenha UI."""
