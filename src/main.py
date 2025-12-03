@@ -6,7 +6,7 @@ from imgui.integrations.opengl import ProgrammablePipelineRenderer # troquei pra
 
 from ui_controls.camera import Camera
 from ui_controls.control_panel import ControlPanelState, draw_control_panel 
-from object.objects import Object
+from object.object import Object
 from polygon_modeler import PolygonModeler
 from input_handlers import keyboard, mouse, motion
 from light.lighting_models import LightingController
@@ -25,6 +25,12 @@ shading_controller = ShadingController()
 
 def add_object_to_scene(obj: Object):
     """Adiciona um objeto à lista global de objetos da cena."""
+    # Aplicar a cor selecionada no painel ao objeto adicionado
+    try:
+        r, g, b = ui_state.object_color
+        obj.set_color(r, g, b)
+    except Exception:
+        pass
     objects.append(obj)
     print(f"Objeto adicionado à cena. Total de objetos: {len(objects)}")
 

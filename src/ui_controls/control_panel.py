@@ -1,5 +1,5 @@
 import imgui
-from object.objects import Object
+from object.object import Object
 
 """
     Gerencia o estado de todas as variáveis controladas pelo Painel ImGui.
@@ -98,11 +98,7 @@ def draw_control_panel(state: ControlPanelState, add_object_callback=None, start
                 
                 # Criar novo objeto
                 new_object = Object(shape=shape, material=material)
-                
-                # Aplicar cor personalizada
-                r, g, b = state.object_color
-                new_object.set_color(r, g, b)
-                
+                        
                 # Adicionar à lista através do callback
                 add_object_callback(new_object)
                 

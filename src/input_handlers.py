@@ -2,7 +2,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 import imgui
-from object_selection import pick_object
+from object.object_selection import pick_object
 
 
 def keyboard(key, x, y, polygon_modeler, selected_objects, camera, light_enabled, light):

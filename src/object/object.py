@@ -185,5 +185,3 @@ class Object:
 
 	def toggle_wireframe(self):
 		self.wireframe = not self.wireframe
-
-
