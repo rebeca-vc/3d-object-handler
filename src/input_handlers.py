@@ -4,7 +4,6 @@ from OpenGL.GLUT import *
 import imgui
 from object.object_selection import pick_object
 
-
 def keyboard(key, x, y, polygon_modeler, selected_objects, camera, light_enabled, light):
     if polygon_modeler.is_modeling_active():
         return
@@ -129,7 +128,6 @@ def handle_object_selection(x, y, modifiers, objects, selected_objects):
     if not (modifiers & GLUT_ACTIVE_CTRL):
         return False
     
-    # Debug: adicionar prints para verificar se está sendo chamada
     print(f"handle_object_selection chamada: pos=({x}, {y}), objetos={len(objects)}")
     
     # Usar função otimizada de color picking
@@ -152,7 +150,7 @@ def handle_object_selection(x, y, modifiers, objects, selected_objects):
 
 
 def mouse(button, state, x, y, polygon_modeler, objects, selected_objects, camera):
-    # Primeiro verificar se está em modo de modelagem
+    # Verificar se está em modo de modelagem
     if polygon_modeler.handle_mouse(button, state, x, y):
         return  # Evento processado pela modelagem
     
@@ -211,19 +209,19 @@ def mouse(button, state, x, y, polygon_modeler, objects, selected_objects, camer
 
 
 def motion(x, y, polygon_modeler, camera):
-    # Se está em modelagem, não processar movimento da câmera
+    # Não mudar cãmera durante modelagem
     if polygon_modeler.is_modeling_active():
         return
     
     io = imgui.get_io()
     
-    # 1. ATUALIZAÇÃO IMGUI 
+    # ATUALIZAÇÃO IMGUI 
     io.mouse_pos = x, y
     
-    # 2. VERIFICAÇÃO DE INTERAÇÃO IMGUI
+    # VERIFICAÇÃO DE INTERAÇÃO IMGUI
     if io.want_capture_mouse:
         return
     
-    # 3. CONTROLE DA CÂMERA 
+    # CONTROLE DA CÂMERA 
     # Move a câmera com as novas coordenadas.
     camera.move_mouse(x, y)
