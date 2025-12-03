@@ -158,8 +158,6 @@ class ExtrudedObject(Object):
                 # Inverter ordem para normal apontar para fora
                 self.faces.append([back_idx + 3, back_idx + 2, back_idx + 1, back_idx])
 
-                # Não criar laterais por segmento; serão criadas pelas arestas da base
-
     def _build_laterals_from_base(self):
         """
         Cria faces laterais como retângulos por aresta do polígono base,
