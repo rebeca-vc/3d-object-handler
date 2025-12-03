@@ -1,5 +1,5 @@
 import imgui
-from object.objects import Object
+from object.object import Object
 
 """
     Gerencia o estado de todas as variáveis controladas pelo Painel ImGui.
@@ -15,7 +15,7 @@ class ControlPanelState:
         self.object_color = (1.0, 1.0, 1.0) 
 
         # Material do Objeto
-        self.object_material_options = ["Plástico", "Borracha", "Metal", "Ouro"]
+        self.object_material_options = ["Plástico", "Borracha", "Metal", "Ouro", "Esmeralda"]
         self.object_material_selected_index = 0
         
         # Profundidade do Polígono Arbitrário 
@@ -34,6 +34,7 @@ class ControlPanelState:
         self.ambient_light = True
         self.difuse_light = True
         self.specular_light = True
+        self.phong_manual = False
 
 """
     Desenha a janela e todos os widgets do Painel de Controle usando ImGui.
@@ -90,7 +91,8 @@ def draw_control_panel(state: ControlPanelState, add_object_callback=None, start
                     "Plástico": "white_plastic",
                     "Borracha": "white_rubber",
                     "Metal": "silver", 
-                    "Ouro": "gold"
+                    "Ouro": "gold",
+                    "Esmeralda": "emerald"
                 }
                 
                 shape = shape_map.get(state.object_options[state.object_selected_index], "cube")
@@ -98,11 +100,7 @@ def draw_control_panel(state: ControlPanelState, add_object_callback=None, start
                 
                 # Criar novo objeto
                 new_object = Object(shape=shape, material=material)
-                
-                # Aplicar cor personalizada
-                r, g, b = state.object_color
-                new_object.set_color(r, g, b)
-                
+                        
                 # Adicionar à lista através do callback
                 add_object_callback(new_object)
                 
@@ -167,6 +165,9 @@ def draw_control_panel(state: ControlPanelState, add_object_callback=None, start
             _, state.ambient_light = imgui.checkbox("Ambiente", state.ambient_light)
             _, state.difuse_light = imgui.checkbox("Difusa", state.difuse_light)
             _, state.specular_light = imgui.checkbox("Especular", state.specular_light)
+        
+        if state.lightning_options[state.lightning_selected_index] == "Phong":
+            _, state.phong_manual = imgui.checkbox("Phong Manual", state.phong_manual)
             
         imgui.text("")
         if imgui.button("Adicionar fonte de luz"):

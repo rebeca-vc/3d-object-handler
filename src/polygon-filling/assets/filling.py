@@ -27,7 +27,6 @@ def get_edges_list(polygon, index):
     else:
         next = polygon[index + 1]
 
-
     # primeiro ponto
     if index == 0:
         previous = polygon[len(polygon) - 1]

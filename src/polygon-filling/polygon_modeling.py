@@ -5,10 +5,7 @@ from assets.polygon import Polygon
 from assets.mouse import handle_modeling_mouse
 
 class PolygonEditor:
-    """
-    Editor simplificado de polígonos para integração direta com aplicação 3D.
-    Remove botões e foca na criação de polígonos para extrusão.
-    """
+    """Editor 2D minimalista: captura vértices, aplica scanline e desenha UI."""
     
     def __init__(self):
         self.current_polygon = None
@@ -16,20 +13,20 @@ class PolygonEditor:
         self.is_active = False
     
     def start_modeling(self, completion_callback=None):
-        """Inicia sessão de modelagem"""
+        """Inicia sessão: cria `Polygon`, define callback e ativa editor."""
         self.current_polygon = Polygon()
         self.completion_callback = completion_callback
         self.is_active = True
         print("Modelagem iniciada - Clique esquerdo: adicionar ponto | Clique direito: finalizar")
     
     def stop_modeling(self):
-        """Para sessão de modelagem"""
+        """Finaliza sessão e limpa polígono atual."""
         self.is_active = False
         self.current_polygon = None
         print("Modelagem finalizada")
     
     def handle_mouse(self, button, state, x, y):
-        """Processa eventos de mouse durante modelagem"""
+        """Encaminha cliques ao handler; finaliza com clique direito."""
         if not self.is_active:
             return False
         
@@ -43,26 +40,42 @@ class PolygonEditor:
         return result
     
     def _on_polygon_complete(self, polygon):
-        """Callback chamado quando polígono é finalizado"""
+        """Preenche (se preciso), reporta segmentos e dispara callback externo."""
         if self.completion_callback:
+            # Garantir que o polígono está preenchido antes de finalizar
+            if hasattr(polygon, 'filled_segments') and not polygon.filled_segments:
+                polygon.fill()
+            
+            print(f"Polígono finalizado com {len(polygon.filled_segments) if polygon.filled_segments else 0} segmentos preenchidos")
             self.completion_callback(polygon)
     
     def render(self):
-        """Renderiza polígono em construção"""
+        """Desenha preenchimento (scanline), bordas e vértices enquanto ativo."""
         if not self.is_active or not self.current_polygon:
             return
         
         # Limpar fundo com cor diferente para indicar modo de modelagem
         glClearColor(0.05, 0.05, 0.15, 1.0)
         
-        # Desenhar apenas bordas (não preencher)
-        self.current_polygon.draw_edges(2.0)
+        # Com ≥3 vértices, aplica preenchimento automaticamente
+        if len(self.current_polygon.vertices) >= 3:
+            try:
+                # Preencher o polígono automaticamente
+                self.current_polygon.fill((0.3, 0.7, 0.3))  # Verde claro
+                # Desenhar o preenchimento
+                self.current_polygon.draw_fill()
+            except Exception as e:
+                print(f"Erro no preenchimento: {e}")
         
-        # Desenhar pontos nos vértices
+        # Desenhar bordas por cima do preenchimento
+        if len(self.current_polygon.vertices) >= 2:
+            self.current_polygon.draw_edges(2.0)
+        
+        # Desenhar pontos nos vértices por cima de tudo
         self._draw_vertex_points()
     
     def _draw_vertex_points(self):
-        """Desenha pontos nos vértices para melhor visualização"""
+        """Pontos nos vértices para feedback visual durante edição."""
         if not self.current_polygon or not self.current_polygon.vertices:
             return
         
@@ -76,13 +89,13 @@ class PolygonEditor:
         glEnd()
     
     def get_current_polygon_vertices(self):
-        """Retorna vértices do polígono atual"""
+        """Retorna cópia dos vértices atuais (para consumo externo)."""
         if self.current_polygon:
             return self.current_polygon.vertices.copy()
         return []
     
     def setup_2d_projection(self, width, height):
-        """Configura projeção 2D para modelagem"""
+        """Configura ortho 2D e desabilita recursos 3D (depth/lighting)."""
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
         gluOrtho2D(0, width, 0, height)
