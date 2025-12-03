@@ -5,8 +5,6 @@ import math
 import copy
 from object.material import * 
 
-
-
 def identity_matrix():
     return [
         1.0, 0.0, 0.0, 0.0,
@@ -31,10 +29,11 @@ class Object:
 		'cone': lambda: glutSolidCone(0.5, 1.0, 32, 8),
 		'torus': lambda: glutSolidTorus(0.15, 0.5, 32, 64),
 	}
+	
 
 	def __init__(
 		self,
-		shape: str = 'cube',
+		shape = 'cube',
 		material: str = 'white_plastic',
 		shading_model: int = GL_FLAT,
 	):
@@ -42,6 +41,20 @@ class Object:
 		self.position = (0.0, 0.0, 0.0)
 		self.rotation = (0.0, 0.0, 0.0)
 		self.scale = (1.0, 1.0, 1.0)
+		self.manual_phong = False
+		self.vertices_3d = []
+		self.faces = []
+
+		if self.shape == 'cube':
+			self.vertices_3d = [
+				[-0.5, -0.5,  0.5], [ 0.5, -0.5,  0.5], [ 0.5,  0.5,  0.5], [-0.5,  0.5,  0.5], 
+				[-0.5, -0.5, -0.5], [ 0.5, -0.5, -0.5], [ 0.5,  0.5, -0.5], [-0.5,  0.5, -0.5] 
+			]
+			self.faces = [
+				[0, 1, 2, 3], [5, 4, 7, 6],
+				[4, 0, 3, 7], [1, 5, 6, 2], 
+				[3, 2, 6, 7], [4, 5, 1, 0]  
+			]
 		
 		# Resolve material por nome (string) e cria uma cópia
 		base_material = MATERIALS.get(material.lower())
@@ -125,26 +138,65 @@ class Object:
 		M = mult(Rzm, M)
 		M = mult(T, M)
 		self._matrix = M
-		
+	
 	def _apply_material(self):
-		m = self.material
-		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, m.ambient)
-		glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, m.diffuse)
-		glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, m.specular)
-		glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, m.emission)
-		glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, m.shininess)
+		"""
+		Aplica o material.
+		Detecta automaticamente se estamos usando Shaders (Phong) ou Pipeline Fixo (Gouraud/Flat).
+		"""
+		# Verifica se existe um programa Shader ativo no momento
+		current_program = glGetIntegerv(GL_CURRENT_PROGRAM)
+
+		if current_program > 0:
+			# --- PHONG --- #
+			# Precisamos enviar as variáveis para o Shader manualmente
+			
+			# 1. Enviar Ambiente
+			loc_ambient = glGetUniformLocation(current_program, "uAmbient")
+			if loc_ambient != -1:
+				glUniform4fv(loc_ambient, 1, self.material.ambient)
+			
+			# 2. Enviar Difusa (Cor principal)
+			loc_diffuse = glGetUniformLocation(current_program, "uDiffuse")
+			if loc_diffuse != -1:
+				glUniform4fv(loc_diffuse, 1, self.material.diffuse)
+				
+			# 3. Enviar Especular (Brilho)
+			loc_specular = glGetUniformLocation(current_program, "uSpecular")
+			if loc_specular != -1:
+				glUniform4fv(loc_specular, 1, self.material.specular)
+				
+			# 4. Enviar Shininess (Concentração do brilho)
+			loc_shininess = glGetUniformLocation(current_program, "uShininess")
+			if loc_shininess != -1:
+				glUniform1f(loc_shininess, self.material.shininess)
+
+		else:
+			# --- MODO FIXO (FLAT / GOURAUD) ---
+			# Usa o método antigo do OpenGL clássico
+			glMaterialfv(GL_FRONT, GL_AMBIENT, self.material.ambient)
+			glMaterialfv(GL_FRONT, GL_DIFFUSE, self.material.diffuse)
+			glMaterialfv(GL_FRONT, GL_SPECULAR, self.material.specular)
+			glMaterialfv(GL_FRONT, GL_SHININESS, self.material.shininess)
+
+	def enable_manual_phong(self, enabled=True):
+		self.manual_phong = enabled
 
 	def draw(self):
 		glPushMatrix()
 		try:
 			# Usa matriz modelo pré-calculada
 			glMultMatrixf(self._matrix)
+			
 			# Material (define como luz interage)
+
 			self._apply_material()
+
 			# Seleciona primitiva
 			draw_map = self._SHAPES_SOLID
 			draw_func = draw_map.get(self.shape) or draw_map.get('cube')
 			draw_func()
+
 		finally:
 			glPopMatrix()
 
