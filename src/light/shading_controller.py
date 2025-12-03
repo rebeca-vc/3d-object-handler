@@ -40,20 +40,16 @@ class ShadingController:
         self._load_phong_shader()
     
     def _load_phong_shader(self):
-        # Em um projeto real, você leria os arquivos .glsl
-        # Aqui, usamos as strings definidas anteriormente.
         try:
             vertex = ""
             with open('light/phong_vertex.glsl', 'r', encoding='utf-8') as arquivo:
-                vertex = arquivo.read() # Lê todo o conteúdo do arquivo
-                print(vertex)
+                vertex = arquivo.read() 
 
             PHONG_VERTEX_SOURCE = vertex
 
             fragment = ""
             with open('light/phong_fragment.glsl', 'r', encoding='utf-8') as arquivo:
-                fragment = arquivo.read() # Lê todo o conteúdo do arquivo
-                print(fragment)
+                fragment = arquivo.read() 
 
             PHONG_FRAGMENT_SOURCE = fragment
             self.phong_program = create_shader_program(PHONG_VERTEX_SOURCE, PHONG_FRAGMENT_SOURCE)
@@ -64,7 +60,7 @@ class ShadingController:
             self.phong_program = None
 
 
-    def apply_shading(self, selected_shading_mode):
+    def apply_shading(self, selected_shading_mode, phong_manual):
         
         if selected_shading_mode == 'Flat':
             glUseProgram(0) # Desativa shaders GLSL
@@ -74,16 +70,15 @@ class ShadingController:
             glUseProgram(0) # Desativa shaders GLSL
             glShadeModel(GL_SMOOTH)
             
-        elif selected_shading_mode == 'Phong':
+        elif selected_shading_mode == 'Phong' and not phong_manual:
             if self.phong_program:
                 # Ativa o programa shader para todos os desenhos subsequentes
                 glUseProgram(self.phong_program) 
             else:
-                # Fallback se o shader falhou ao carregar
+                # Shader falhou ao carregar
                 glUseProgram(0)
                 glShadeModel(GL_SMOOTH) 
                 print("Atenção: Phong Shading não disponível, usando Gouraud como fallback.")
         else:
             glUseProgram(0)
             glShadeModel(GL_SMOOTH)
-            print(f"Modo de sombreamento '{selected_shading_mode}' desconhecido. Usando Gouraud.")

@@ -11,6 +11,7 @@ from polygon_modeler import PolygonModeler
 from input_handlers import keyboard, mouse, motion
 from light.lighting_models import LightingController
 from light.shading_controller import ShadingController
+from light.phong_manual import PhongManual
 
 renderer = None
 camera = Camera()
@@ -19,6 +20,7 @@ objects: list[Object] = []
 selected_objects: list[Object] = []  # Lista de objetos selecionados
 polygon_modeler = PolygonModeler()
 lighting_controller = LightingController()
+phong_manual = PhongManual()
 shading_controller = None
 
 ## -------- OBJECT CONTROLS ------- ##
@@ -124,30 +126,6 @@ def projection_setup(width, height, ui_state):
     glEnable(GL_LIGHT0)
     glEnable(GL_NORMALIZE)  # se escalas variadas forem usadas
 
-## ---- Shading --- TODO: Colocar na classes 
-
-def shading_setup(ui_state):
-    shading_mode = ui_state.lightning_options[ui_state.lightning_selected_index]
-
-    if shading_mode == 'Flat':
-        glShadeModel(GL_FLAT)
-        # O Flat shading usa a cor e a normal do primeiro vértice do polígono.
-        # Todos os pixels do polígono terão a mesma cor.
-        
-    elif shading_mode == 'Gouraud':
-        glShadeModel(GL_SMOOTH)
-        # O Smooth shading (Gouraud no OpenGL) interpola as cores
-        # calculadas nos vértices pelos pixels do polígono.
-        
-    elif shading_mode == 'Phong':
-        # Para Phong, que exige shaders, você fará:
-        # 1. Ativar o programa shader (se implementado)
-        # 2. Passar as variáveis uniformes (luz, material, câmera) para o shader.
-        # Por enquanto, vamos manter o Gouraud (Smooth) como fallback visual:
-        glShadeModel(GL_SMOOTH) 
-        print("Atenção: Phong shading requer shaders GLSL, usando Gouraud como fallback.")
-
-
 ## -------- GLUT BASIC -------- ##
 
 def display():
@@ -170,7 +148,6 @@ def display():
         h = glutGet(GLUT_WINDOW_HEIGHT)
         projection_setup(w, h, ui_state)
 
-
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         glMatrixMode(GL_MODELVIEW)
@@ -182,17 +159,55 @@ def display():
                   camera.focal_point_x, camera.focal_point_y, camera.focal_point_z,
                   0, 1, 0)
         
-        shading_controller.apply_shading(ui_state.lightning_options[ui_state.lightning_selected_index])
-        lighting_controller.light_setup(ui_state.ambient_light, ui_state.difuse_light, ui_state.specular_light)        
-        lighting_controller.apply_light_position()
-
-        # Drawing Grid and Axes
+        # Desenha Grid e Eixos 
         draw_axes()
         draw_grid()
 
+        # Configura a iluminação 
+        lighting_controller.light_setup(ui_state.ambient_light, ui_state.difuse_light, ui_state.specular_light)        
+        lighting_controller.apply_light_position()
+
+        # Aplica o shader escolhido 
+        shading_controller.apply_shading(ui_state.lightning_options[ui_state.lightning_selected_index], ui_state.phong_manual)
+
         # Desenha cada objeto
         for obj in objects:
-            obj.draw()
+            glPushMatrix()
+            glMultMatrixf(obj._matrix)
+
+            is_cube = (obj.shape == 'cube')
+
+            if ui_state.phong_manual and is_cube:
+                # Guarda o programa atual para restaurar depois (opcional, mas seguro)
+                glUseProgram(0) 
+                glDisable(GL_LIGHTING)
+                
+                # Coleta dados de luz atuais
+                camera_pos = (camera.camera_position_x, camera.camera_position_y, camera.camera_position_z)
+                light_pos = lighting_controller.light_position
+                light_colors = {
+                    'amb': lighting_controller.light_ambient if ui_state.ambient_light else [0,0,0,1],
+                    'dif': lighting_controller.light_diffuse if ui_state.difuse_light else [0,0,0,1],
+                    'spec': lighting_controller.light_specular if ui_state.specular_light else [0,0,0,1]
+                }
+
+                # Renderiza Manualmente
+                phong_manual.render_object(obj, camera_pos, light_pos, light_colors)
+                
+                # CRUCIAL: Restaura o estado para os próximos objetos ou próximo frame
+                glEnable(GL_LIGHTING) 
+                # Reaplica o shader GLSL se estivesse selecionado, 
+                # caso você tenha mais de um objeto e só um deles esteja sendo renderizado manualmente
+                shading_controller.apply_shading(ui_state.lightning_options[ui_state.lightning_selected_index], False) 
+
+            else:
+                # --- RENDERIZAÇÃO PADRÃO (OpenGL/Shader) ---
+                # Garante que iluminação está ligada (caso o manual tenha desligado no loop anterior)
+                glEnable(GL_LIGHTING) 
+                obj.draw()
+
+            glPopMatrix()
+
 
     # --- Renderização do ImGui ---
     imgui.render()
@@ -233,6 +248,7 @@ def main():
     # Forçar a chamada de reshape para configurar o tamanho inicial (DisplaySize)
     current_width = glutGet(GLUT_WINDOW_WIDTH)
     current_height = glutGet(GLUT_WINDOW_HEIGHT)
+    phong_manual.update_size(current_width, current_height)
     reshape(current_width, current_height) 
 
     glutDisplayFunc(display)
