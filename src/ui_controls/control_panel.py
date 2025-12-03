@@ -1,9 +1,7 @@
 import imgui
 from object.object import Object
 
-"""
-    Gerencia o estado de todas as variáveis controladas pelo Painel ImGui.
-"""
+
 class ControlPanelState:
  
     def __init__(self):
@@ -36,12 +34,7 @@ class ControlPanelState:
         self.specular_light = True
         self.phong_manual = False
 
-"""
-    Desenha a janela e todos os widgets do Painel de Controle usando ImGui.
-    Recebe um objeto ControlPanelState para ler/modificar o estado.
-    add_object_callback: função que será chamada para adicionar um objeto à lista.
-    start_modeling_callback: função que será chamada para iniciar modelagem poligonal.
-"""
+
 def draw_control_panel(state: ControlPanelState, add_object_callback=None, start_modeling_callback=None, add_light_callback=None, clear_scene=None, light_enabled=None):
     # Flags para travar a janela
     window_flags = imgui.WINDOW_NO_MOVE | imgui.WINDOW_NO_RESIZE
