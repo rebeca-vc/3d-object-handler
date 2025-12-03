@@ -14,7 +14,8 @@ def compile_shader(source, shader_type):
 def create_shader_program(vertex_source, fragment_source):
     vert_shader = compile_shader(vertex_source, GL_VERTEX_SHADER)
     frag_shader = compile_shader(fragment_source, GL_FRAGMENT_SHADER)
-    
+
+    # Carregando e criando programa de Shaders
     program = glCreateProgram()
     glAttachShader(program, vert_shader)
     glAttachShader(program, frag_shader)
@@ -24,14 +25,12 @@ def create_shader_program(vertex_source, fragment_source):
     status = glGetProgramiv(program, GL_LINK_STATUS)
     if status == GL_FALSE:
         raise RuntimeError(f"Erro de linkagem do programa shader:\n{glGetProgramInfoLog(program)}")
-    
-    # Após a linkagem, os shaders individuais podem ser deletados (opcional, mas boa prática)
+
+    # Limpando Shaders
     glDeleteShader(vert_shader)
     glDeleteShader(frag_shader)
     
     return program
-
-# --- CÓDIGO DA CLASSE ShadingController (Com alterações) ---
 
 class ShadingController:
    
